@@ -1,0 +1,40 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: mkdir -p fake-site && echo real > fake-site/index.html
+
+      - id: off
+        uses: ./
+        with:
+          path: fake-site
+          enabled: "false"
+      - run: test "${{ steps.off.outputs.path }}" = fake-site && test "${{ steps.off.outputs.enabled }}" = false
+
+      - id: on
+        uses: ./
+        with:
+          path: fake-site
+          enabled: "true"
+          message: Proofreading <everything>
+      - env:
+          OUT: ${{ steps.on.outputs.path }}
+        run: |
+          test "${{ steps.on.outputs.enabled }}" = true
+          grep -q 'noindex' "$OUT/index.html"
+          grep -q 'Proofreading &lt;everything&gt;' "$OUT/index.html"
+          cmp "$OUT/index.html" "$OUT/404.html"
+          ! grep -q '__[A-Z_]*__' "$OUT/index.html"
+
+      - run: "! python3 render.py --out bad --back-url //evil.example"

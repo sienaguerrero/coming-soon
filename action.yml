@@ -1,0 +1,47 @@
+name: siena.codes coming soon
+description: Swap a GitHub Pages build for the siena.codes Under construction page when enabled.
+inputs:
+  path:
+    description: Folder holding the real site build.
+    required: true
+  enabled:
+    description: "'true' publishes the Under construction page instead of the build. Pass a repo variable, like vars.COMING_SOON."
+    default: "false"
+  title:
+    default: Under construction
+  message:
+    default: This page is getting a fresh coat of paint. Check back soon.
+  back-url:
+    default: https://siena.codes
+  back-label:
+    default: back to siena.codes
+outputs:
+  path:
+    description: The folder to upload with actions/upload-pages-artifact.
+    value: ${{ steps.pick.outputs.path }}
+  enabled:
+    description: "'true' when the Under construction page was chosen."
+    value: ${{ steps.pick.outputs.enabled }}
+runs:
+  using: composite
+  steps:
+    - id: pick
+      shell: bash
+      env:
+        SITE_PATH: ${{ inputs.path }}
+        ENABLED: ${{ inputs.enabled }}
+        TITLE: ${{ inputs.title }}
+        MESSAGE: ${{ inputs.message }}
+        BACK_URL: ${{ inputs.back-url }}
+        BACK_LABEL: ${{ inputs.back-label }}
+      run: |
+        if [ "$ENABLED" = "true" ]; then
+          out="$RUNNER_TEMP/coming-soon"
+          python3 "$GITHUB_ACTION_PATH/render.py" --out "$out" --title "$TITLE" --message "$MESSAGE" --back-url "$BACK_URL" --back-label "$BACK_LABEL"
+          echo "path=$out" >> "$GITHUB_OUTPUT"
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+          echo "::notice::Publishing the Under construction page instead of $SITE_PATH"
+        else
+          echo "path=$SITE_PATH" >> "$GITHUB_OUTPUT"
+          echo "enabled=false" >> "$GITHUB_OUTPUT"
+        fi
